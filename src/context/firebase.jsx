@@ -21,12 +21,12 @@ import { getStorage, uploadBytes, ref, getDownloadURL } from "firebase/storage";
 const FirebaseContext = createContext(null);
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBhpZLUEhaVKZpwgtJrkETp1no_Zdhy98I",
-  authDomain: "bookify-b8845.firebaseapp.com",
-  projectId: "bookify-b8845",
-  storageBucket: "bookify-b8845.appspot.com",
-  messagingSenderId: "737400274864",
-  appId: "1:737400274864:web:7afb32de8a5d14b36ee075",
+  apiKey: process.env.API_KEY,
+  authDomain: process.env.AUTH_DOMAIN,
+  projectId: process.env.PROJECT_ID,
+  storageBucket: process.env.STORAGE_BUCKET,
+  messagingSenderId: process.env.MESSAGING_SENDER_ID,
+  appId: process.env.APP_ID,
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
