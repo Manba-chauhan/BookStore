@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 const BookCard = (props) => {
   const [url, setURL] = useState(null);
   const [qty, setQty] = useState(1);
+  const [showQtyControls, setShowQtyControls] = useState(false);
   const firebase = useFirebase();
   const navigate = useNavigate();
 
@@ -31,17 +32,34 @@ const BookCard = (props) => {
       .catch((err) => console.log("error"));
   }, [props.imgURL, firebase]);
 
-  const placeOrder = async (id) => {
-    const result = await firebase.placeOrder(id, qty);
-    console.log("result", result);
-    return result;
-  };
+const handleBuyNow = async () => {
+  setShowQtyControls(true);
+  try {
+    console.log("Placing order for book ID:", props.id, "with qty:", qty);
+    await firebase.placeOrder(props.id, qty);
 
-  const handleQtyChange = async (newQty) => {
-    if (newQty < 1) return; // Prevent quantity from being less than 1
+    const bookDoc = await firebase.getBookID(props.id);
+    const currentQty = bookDoc.data().qty;
+    console.log("Current quantity:", currentQty);
+
+    const newQty = currentQty - qty;
+    if (newQty < 0) {
+      alert("Not enough stock available.");
+      return;
+    }
+
+   
+  } catch (error) {
+    console.error("Error processing order:", error);
+  }
+};
+const handleQtyChange = async (newQty) => {
+   await firebase.updateQty(props.id, newQty);
+    console.log("Updated quantity to:", newQty);
+  if (newQty > 0) {
     setQty(newQty);
-    await firebase.updateQty(props.id, newQty); // Update Firebase with new quantity
-  };
+  }
+};
 
   return (
     <Card sx={{ p: 1, borderRadius: "12px", bgcolor: "secondary.light" }}>
@@ -141,17 +159,29 @@ const BookCard = (props) => {
       </CardContent>
       <CardActions>
         <Stack direction="row" spacing={3} sx={{ mt: -1 }}>
-          <Stack direction="row" alignItems="center">
-            <IconButton size="small" onClick={() => handleQtyChange(qty - 1)}>
-              <RemoveIcon />
-            </IconButton>
-            <Button variant="body1" sx={{ px: 2 }}>
-              {qty}
+          {showQtyControls ? (
+            <Stack direction="row" alignItems="center">
+              <IconButton size="small" onClick={() => handleQtyChange(qty - 1)}>
+                <RemoveIcon />
+              </IconButton>
+              <Button variant="body1" sx={{ px: 2 }}>
+                {qty}
+              </Button>
+              <IconButton size="small" onClick={() => handleQtyChange(qty + 1)}>
+                <AddIcon />
+              </IconButton>
+            </Stack>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ px: 2, textWrap: "nowrap" }}
+              onClick={handleBuyNow}
+            >
+              Buy Now
             </Button>
-            <IconButton size="small" onClick={() => handleQtyChange(qty + 1)}>
-              <AddIcon />
-            </IconButton>
-          </Stack>
+          )}
           <Button
             variant="contained"
             color="primary"

@@ -46,6 +46,13 @@ const Header = () => {
     return navigate("/login");
   };
 
+ const handleOrderDetails = () => {
+   if (firebase.isLoggIn) {
+    console.log("jeloo")
+     return navigate("/orders");
+   }
+   return navigate("/login");
+ };
   const handleLogout = async () => {
     await firebase.logOut();
     navigate("/");
@@ -126,14 +133,13 @@ const Header = () => {
           <Toolbar>
             <Box sx={{ flexGrow: 1 }}>
               <Button
-                
                 sx={{
                   fontFamily: "Roboto",
                   fontWeight: 500,
                   color: "#fff",
-                  fontSize:"1.75rem"
+                  fontSize: "1.75rem",
                 }}
-                onClick={()=>navigate("/book")}
+                onClick={() => navigate("/book")}
               >
                 Bookify
               </Button>
@@ -170,6 +176,13 @@ const Header = () => {
                     onClick={handleAddBookpage}
                   >
                     AddListing
+                  </Button>
+                  <Button
+                    variant="text"
+                    color="inherit"
+                    onClick={handleOrderDetails}
+                  >
+                    Orders
                   </Button>
                   <Button
                     variant="outlined"

@@ -5,8 +5,8 @@ import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import {
   getFirestore,
   setDoc,
@@ -15,18 +15,19 @@ import {
   addDoc,
   collection,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { getStorage, uploadBytes, ref, getDownloadURL } from "firebase/storage";
 
 const FirebaseContext = createContext(null);
 
 const firebaseConfig = {
-  apiKey: process.env.API_KEY,
-  authDomain: process.env.AUTH_DOMAIN,
-  projectId: process.env.PROJECT_ID,
-  storageBucket: process.env.STORAGE_BUCKET,
-  messagingSenderId: process.env.MESSAGING_SENDER_ID,
-  appId: process.env.APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -45,7 +46,6 @@ export const FirebaseProvider = (props) => {
       if (user) {
         setCurrentUser(user);
         const userDoc = await getDoc(doc(firestore, "users", user.uid));
-        console.log("userdata", userDoc.data());
         if (userDoc.exists()) {
           setCurrentUser(user);
           setRole(userDoc.data().role);
@@ -57,7 +57,7 @@ export const FirebaseProvider = (props) => {
         setCurrentUser(null);
         setRole(null);
       }
-    })
+    });
     return () => unsubscribe();
   }, []);
 
@@ -118,7 +118,6 @@ export const FirebaseProvider = (props) => {
     price,
     bookpic
   ) => {
-    console.log("user", currentUser);
     const imgRef = ref(storage, `uploads/images/${Date.now()}-${bookpic.name}`);
     const uploadResult = await uploadBytes(imgRef, bookpic);
     const downloadURL = await getDownloadURL(uploadResult.ref);
@@ -134,45 +133,64 @@ export const FirebaseProvider = (props) => {
       userEmail: currentUser.email,
     });
   };
-  // all books get
+
   const listAllBook = () => {
     return getDocs(collection(firestore, "books"));
   };
-  //imgaes get
+
   const getImgURL = (path) => {
     return getDownloadURL(ref(storage, path));
   };
-  // details of book
+
   const getBookID = async (id) => {
     const docRef = doc(firestore, "books", id);
     const result = await getDoc(docRef);
     return result;
   };
 
-  //placeorder
   const placeOrder = async (bookId, qty) => {
     const collectionRef = collection(firestore, "books", bookId, "Orders");
     const userDoc = await getDoc(doc(firestore, "users", currentUser.uid));
-    console.log("userdata1", userDoc.data());
     const result = await addDoc(collectionRef, {
+      
       userId: currentUser.uid,
-      // bookId:
-      username: userDoc.data().fname + userDoc.data().lname,
+      username: `${userDoc.data().fname} ${userDoc.data().lname}`,
       userEmail: currentUser.email,
+      bookId,
       qty,
     });
     return result;
   };
-  // In your Firebase context file
-  // const updateQty = async (bookId, qty) => {
-  //   try {
-  //     const bookRef = collection(firestore, "books", bookId,);
-  //     await bookRef.update({ qty });
-  //   } catch (error) {
-  //     console.error("Error updating quantity:", error);
-  //   }
-  // };
-  const isLoggIn = currentUser ? true : false;
+
+ const updateQty = async (bookId, newQty) => {
+   const bookRef = doc(firestore, "books", bookId);
+   try {
+     console.log("Updating quantity for book ID:", bookId, "qty:", newQty);
+     await updateDoc(bookRef, { qty: newQty });
+     console.log("Quantity updated successfully");
+   } catch (error) {
+     console.error("Error updating quantity: ", error);
+   }
+ };
+
+
+  const getOrders = async () => {
+    if (currentUser) {
+      const orderCollection = await getDocs(collection(firestore, "books"));
+      const orderList = [];
+      orderCollection.forEach((doc) => {
+        const orderData = doc.data();
+        console.log("orderData",orderData)
+        if (orderData.userID === currentUser.uid) {
+          orderList.push({ ...orderData, id: doc.id });
+        }
+      });
+      return orderList;
+    }
+    return [];
+  };
+
+  const isLoggIn = !!currentUser;
 
   return (
     <FirebaseContext.Provider
@@ -188,7 +206,8 @@ export const FirebaseProvider = (props) => {
         getBookID,
         getImgURL,
         placeOrder,
-        // updateQty,
+        updateQty,
+        getOrders, // Add this line
       }}
     >
       {props.children}
